@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load resume_tags %}
+
+{% block content %}
+<div class="resume-detail">
+    <!-- Шапка с основной информацией -->
+    <div class="resume-header">
+        <div class="resume-rating">
+            <div class="rating-circle" style="background: {{ resume.rating|relevance_color }}">
+                {{ resume.rating }}%
+            </div>
+        </div>
+        <div class="resume-basic-info">
+            <h1>{{ resume.full_name|default:"Не указано" }}</h1>
+            <div class="info-tags">
+                {% if resume.location %}
+                    <span class="info-tag"><i class="fas fa-map-marker-alt"></i> {{ resume.location }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Основное содержание -->
+    <div class="resume-content">
+        <!-- Левая колонка -->
+        <div class="resume-left-column">
+            <!-- Опыт работы -->
+            <section class="resume-section">
+                <h2><i class="fas fa-briefcase"></i> Опыт работы</h2>
+                {% with work_experience=resume.analysis_result|parse_json %}
+                    {% if work_experience.work_experience %}
+                        {% for job in work_experience.work_experience %}
+                            <div class="job-item">
+                                <div class="job-header">
+                                    <h3>{{ job.position }}</h3>
+                                    <span class="job-period">{{ job.period }}</span>
+                                </div>
+                                <div class="company-name">
+                                    <i class="fas fa-building"></i> {{ job.company }}
+                                </div>
+                                {% if job.responsibilities %}
+                                    <ul class="responsibilities">
+                                        {% for resp in job.responsibilities %}
+                                            <li>{{ resp }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>Опыт работы не указан</p>
+                    {% endif %}
+                {% endwith %}
+            </section>
+
+            <!-- Образование -->
+            <section class="resume-section">
+                <h2><i class="fas fa-graduation-cap"></i> Образование</h2>
+                {% with education=resume.analysis_result|parse_json %}
+                    {% if education.education %}
+                        {% for edu in education.education %}
+                            <div class="education-item">
+                                <h3>{{ edu.institution }}</h3>
+                                <div class="degree">{{ edu.degree }}</div>
+                                <div class="edu-period">{{ edu.period }}</div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>Образование не указано</p>
+                    {% endif %}
+                {% endwith %}
+            </section>
+        </div>
+
+        <!-- Правая колонка -->
+        <div class="resume-right-column">
+            <!-- Навыки -->
+            <section class="resume-section">
+                <h2><i class="fas fa-tools"></i> Навыки</h2>
+                {% with skills=resume.analysis_result|parse_json %}
+                    {% if skills.skills %}
+                        <div class="skills-container">
+                            {% if skills.skills.technical %}
+                                <div class="skills-group">
+                                    <h3>Технические навыки</h3>
+                                    <div class="skills-tags">
+                                        {% for skill in skills.skills.technical %}
+                                            <span class="skill-tag">{{ skill }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if skills.skills.soft %}
+                                <div class="skills-group">
+                                    <h3>Soft skills</h3>
+                                    <div class="skills-tags">
+                                        {% for skill in skills.skills.soft %}
+                                            <span class="skill-tag soft">{{ skill }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <p>Навыки не указаны</p>
+                    {% endif %}
+                {% endwith %}
+            </section>
+
+            <!-- Рекомендуемые позиции -->
+            <section class="resume-section">
+                <h2><i class="fas fa-star"></i> Рекомендуемые позиции</h2>
+                {% if resume.recommended_positions %}
+                    <div class="recommended-positions">
+                        {% for position in resume.recommended_positions|parse_json %}
+                            <div class="position-card">
+                                <h3>{{ position.position }}</h3>
+                                <div class="position-match">
+                                    Соответствие: <span class="match-percentage">{{ position.match_percentage }}%</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>Рекомендуемые позиции не указаны</p>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</div>
+
+<style>
+.resume-detail {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.resume-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.rating-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    margin-right: 2rem;
+}
+
+.resume-basic-info {
+    flex: 1;
+}
+
+.info-tags {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.info-tag {
+    background: #f0f0f0;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.resume-content {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 2rem;
+}
+
+.resume-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.resume-section h2 {
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.job-item, .education-item {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.job-period, .edu-period {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.company-name {
+    color: #495057;
+    margin: 0.5rem 0;
+}
+
+.responsibilities {
+    margin-top: 0.5rem;
+    padding-left: 1.2rem;
+}
+
+.skills-container {
+    display: grid;
+    gap: 1rem;
+}
+
+.skills-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.skill-tag {
+    background: #e9ecef;
+    padding: 0.4rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.9rem;
+}
+
+.skill-tag.soft {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.position-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.match-percentage {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.rating-details ul {
+    padding-left: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.rating-details li {
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+/* Иконки */
+.fas {
+    margin-right: 0.5rem;
+    color: #6c757d;
+}
+</style>
+{% endblock %} 

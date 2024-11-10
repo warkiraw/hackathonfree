@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load resume_tags %}
+
+{% block content %}
+<div class="search-container">
+    <!-- Поисковая форма -->
+    <form class="search-form" method="get" action="{% url 'hacky:search' %}">
+        <div class="search-input-group">
+            <input type="text" name="q" value="{{ query }}" 
+                   placeholder="Введите должность или ключевые слова..."
+                   class="search-input">
+            <button type="submit" class="search-button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+        
+        <!-- Фильтры -->
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="min_rating">Минимальный рейтинг</label>
+                <input type="range" id="min_rating" name="min_rating" 
+                       min="0" max="100" value="{{ filters.min_rating|default:0 }}"
+                       class="range-input">
+                <span class="range-value">{{ filters.min_rating|default:0 }}</span>
+            </div>
+            
+            <div class="filter-group">
+                <label for="location">Локация</label>
+                <input type="text" id="location" name="location" 
+                       value="{{ filters.location|default:'' }}"
+                       placeholder="Город или регион">
+            </div>
+            
+            <div class="filter-group">
+                <label for="education_level">Образование</label>
+                <select id="education_level" name="education_level">
+                    <option value="">Любое</option>
+                    <option value="высшее" {% if filters.education_level == 'высшее' %}selected{% endif %}>Высшее</option>
+                    <option value="магистратура" {% if filters.education_level == 'магистратура' %}selected{% endif %}>Магистратура</option>
+                    <option value="специалитет" {% if filters.education_level == 'специалитет' %}selected{% endif %}>Специалитет</option>
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <!-- Результаты поиска -->
+    <div class="results-container">
+        {% for result in results %}
+        <div class="candidate-card">
+            <div class="card-layout">
+                <!-- Левая часть с рейтингом и базовой информацией -->
+                <div class="card-left">
+                    <div class="rating-circle" style="background-color: {{ result.relevance.relevance_score|relevance_color }}">
+                        {{ result.relevance.relevance_score }}%
+                    </div>
+                    <div class="basic-info">
+                        <h3>{{ result.candidate.full_name|default:"Не указано" }}</h3>
+                        <div class="location-info">
+                            <i class="fas fa-map-marker-alt"></i>
+                            {{ result.candidate.location|default:"Локация не указана" }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Центральная часть с навыками и позициями -->
+                <div class="card-center">
+                    <!-- Рекомендуемые позиции -->
+                    <div class="section">
+                        <h4><i class="fas fa-star"></i> Рекомендуемые позиции:</h4>
+                        {% if result.candidate.recommended_positions %}
+                            {% for position in result.candidate.recommended_positions|parse_json %}
+                                <div class="position-tag">{{ position.position }}</div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="position-tag empty">Не указано</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Навыки -->
+                    <div class="section">
+                        <h4><i class="fas fa-tools"></i> Навыки:</h4>
+                        <div class="skills-tags">
+                            {% if result.candidate.technical_skills %}
+                                {% for skill in result.candidate.technical_skills|split_skills %}
+                                    <span class="skill-tag">{{ skill }}</span>
+                                {% endfor %}
+                            {% endif %}
+                            {% if not result.candidate.technical_skills %}
+                                <span class="skill-tag empty">Не указано</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Последний опыт -->
+                    <div class="section">
+                        <h4><i class="fas fa-briefcase"></i> Последний опыт:</h4>
+                        <div class="experience-text">
+                            {{ result.candidate.work_experience|truncatewords:20|default:"Не указано" }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Правая часть с кнопкой -->
+                <div class="card-right">
+                    <a href="{% url 'hacky:resume_detail' pk=result.candidate.pk %}" class="details-button">
+                        Подробнее <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="no-results">
+            {% if query %}
+            <p><i class="fas fa-search"></i> По вашему запросу ничего не найдено</p>
+            {% else %}
+            <p><i class="fas fa-keyboard"></i> Введите запрос для поиска кандидатов</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- В конце списка результатов -->
+    {% if page_obj %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?q={{ query }}&page=1" class="page-link">&laquo; Первая</a>
+            <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}" class="page-link">Предыдущая</a>
+        {% endif %}
+
+        {% get_page_range paginator page_obj.number as pages %}
+        {% for p in pages %}
+            {% if p == page_obj.number %}
+                <span class="page-link active">{{ p }}</span>
+            {% else %}
+                <a href="?q={{ query }}&page={{ p }}" class="page-link">{{ p }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?q={{ query }}&page={{ page_obj.next_page_number }}" class="page-link">Следующая</a>
+            <a href="?q={{ query }}&page={{ paginator.num_pages }}" class="page-link">Последняя &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.candidate-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card-layout {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 2rem;
+    align-items: start;
+}
+
+.card-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.rating-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.basic-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 1.2rem;
+}
+
+.location-info {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.card-center {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.section {
+    margin-bottom: 0.5rem;
+}
+
+.section h4 {
+    color: #495057;
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.skills-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.skill-tag {
+    background: #e9ecef;
+    padding: 0.4rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.9rem;
+}
+
+.skill-tag.empty {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.position-tag {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 0.4rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    display: inline-block;
+    margin: 0 0.5rem 0.5rem 0;
+}
+
+.position-tag.empty {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.experience-text {
+    color: #495057;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.card-right {
+    display: flex;
+    align-items: center;
+}
+
+.details-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.2rem;
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.details-button:hover {
+    background: #0056b3;
+    text-decoration: none;
+    color: white;
+}
+
+.fas {
+    margin-right: 0.3rem;
+}
+
+@media (max-width: 768px) {
+    .card-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .card-right {
+        justify-content: flex-end;
+    }
+}
+</style>
+{% endblock %} 
